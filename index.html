@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f19" />
+  <meta name="description" content="AoFab" />
+  <title>AoFab</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --cyan: #22d3ee;
+      --emerald: #34d399;
+      --text: rgba(232, 238, 247, 0.92);
+      --muted: rgba(148, 163, 184, 0.55);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--text);
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    #field {
+      position: fixed; inset: 0; width: 100vw; height: 100vh; display: block;
+      background: var(--bg);
+    }
+    .vignette {
+      position: fixed; inset: 0; pointer-events: none; z-index: 1;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(11, 15, 25, 0.72) 100%);
+    }
+    .hero {
+      position: fixed; inset: 0; z-index: 2;
+      display: grid; place-items: center;
+      padding: clamp(1.25rem, 4vw, 3rem);
+      pointer-events: none;
+    }
+    .mark {
+      text-align: center;
+      user-select: none;
+    }
+    h1 {
+      font-size: clamp(2rem, 6vw, 3.75rem);
+      font-weight: 650;
+      letter-spacing: 0.28em;
+      text-indent: 0.28em;
+      line-height: 1;
+      color: var(--text);
+      text-shadow: 0 0 40px rgba(34, 211, 238, 0.18);
+      margin-bottom: 0.85rem;
+    }
+    .whisper {
+      font-size: clamp(0.7rem, 1.6vw, 0.85rem);
+      letter-spacing: 0.35em;
+      text-indent: 0.35em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="field" aria-hidden="true"></canvas>
+  <div class="vignette"></div>
+  <main class="hero">
+    <div class="mark">
+      <h1>AOFAB</h1>
+      <p class="whisper">forward</p>
+    </div>
+  </main>
+  <script>
+(function () {
+  "use strict";
+  const canvas = document.getElementById("field");
+  const ctx = canvas.getContext("2d", { alpha: false });
+  const COLS = 56, ROWS = 32, PARTICLE_COUNT = 3800, FADE = 0.078;
+  let width = 0, height = 0, dpr = 1, grid = null, particles = null, animId = 0, time = 0, usingLive = false;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    width = window.innerWidth; height = window.innerHeight;
+    canvas.width = Math.floor(width * dpr); canvas.height = Math.floor(height * dpr);
+    canvas.style.width = width + "px"; canvas.style.height = height + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = "#0b0f19"; ctx.fillRect(0, 0, width, height);
+    if (grid) rebuildParticles();
+  }
+  function cellAt(ix, iy) {
+    ix = ((ix % COLS) + COLS) % COLS;
+    iy = Math.max(0, Math.min(ROWS - 1, iy));
+    return grid[iy * COLS + ix];
+  }
+  function sample(x, y) {
+    const gx = (x / width) * COLS, gy = (y / height) * ROWS;
+    const x0 = Math.floor(gx), y0 = Math.floor(gy), tx = gx - x0, ty = gy - y0;
+    const a = cellAt(x0, y0), b = cellAt(x0 + 1, y0), c = cellAt(x0, y0 + 1), d = cellAt(x0 + 1, y0 + 1);
+    const u = a.u * (1 - tx) * (1 - ty) + b.u * tx * (1 - ty) + c.u * (1 - tx) * ty + d.u * tx * ty;
+    const v = a.v * (1 - tx) * (1 - ty) + b.v * tx * (1 - ty) + c.v * (1 - tx) * ty + d.v * tx * ty;
+    return { u, v, mag: Math.hypot(u, v) };
+  }
+  function forwardField(t) {
+    const cells = new Array(COLS * ROWS);
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        const nx = x / COLS, ny = y / ROWS;
+        // Dominant rightward drift + soft undulation
+        const u = 0.72 + Math.sin((ny * 5 + t * 0.35) * Math.PI) * 0.22 + Math.sin((nx * 2 - t * 0.2) * Math.PI) * 0.12;
+        const v = Math.sin((nx * 3 + t * 0.25) * Math.PI) * 0.28 + Math.cos((ny * 4 - t * 0.18) * Math.PI) * 0.12;
+        cells[y * COLS + x] = { u, v };
+      }
+    }
+    return normalizeField(cells);
+  }
+  function normalizeField(cells) {
+    let max = 1e-6;
+    for (const c of cells) max = Math.max(max, Math.hypot(c.u, c.v));
+    return cells.map((c) => ({ u: c.u / max, v: c.v / max }));
+  }
+  async function fetchOpenMeteo() {
+    const lats = d3.range(-50, 51, 12), lons = d3.range(-160, 161, 20);
+    const url = "https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({
+      latitude: lats.join(","), longitude: lons.join(","),
+      current: "wind_speed_10m,wind_direction_10m", wind_speed_unit: "ms"
+    }).toString();
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const points = Array.isArray(data) ? data : [data];
+    const samples = [];
+    for (const p of points) {
+      if (!p.current) continue;
+      const spd = +p.current.wind_speed_10m || 0;
+      const dir = ((+p.current.wind_direction_10m || 0) * Math.PI) / 180;
+      samples.push({ lon: +p.longitude, lat: +p.latitude, u: -Math.sin(dir) * spd, v: -Math.cos(dir) * spd });
+    }
+    if (samples.length < 6) throw new Error("sparse");
+    const cells = new Array(COLS * ROWS);
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        const lon = -180 + (x / (COLS - 1)) * 360, lat = 65 - (y / (ROWS - 1)) * 130;
+        let wu = 0, wv = 0, wsum = 0;
+        for (const s of samples) {
+          const dlon = Math.min(Math.abs(s.lon - lon), 360 - Math.abs(s.lon - lon));
+          const dlat = Math.abs(s.lat - lat);
+          const w = 1 / (dlon * dlon + dlat * dlat + 1);
+          wu += s.u * w; wv += s.v * w; wsum += w;
+        }
+        // Bias live wind forward (screen +x)
+        cells[y * COLS + x] = { u: wu / wsum + 0.45, v: wv / wsum * 0.65 };
+      }
+    }
+    return normalizeField(cells);
+  }
+  function rebuildParticles() {
+    particles = d3.range(PARTICLE_COUNT).map(spawn);
+  }
+  function spawn() {
+    return { x: Math.random() * width * 0.15 - 40, y: Math.random() * height, age: Math.random() * 90, life: 70 + Math.random() * 110 };
+  }
+  function colorFor(mag) {
+    return d3.interpolateRgb("#22d3ee", "#34d399")(Math.max(0, Math.min(1, mag)));
+  }
+  function frame(ts) {
+    time = ts * 0.001;
+    if (!usingLive) grid = forwardField(time);
+    ctx.fillStyle = "rgba(11, 15, 25, " + FADE + ")";
+    ctx.fillRect(0, 0, width, height);
+    ctx.lineWidth = 1.1; ctx.lineCap = "round";
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i], s = sample(p.x, p.y);
+      const speed = 1.1 + s.mag * 3.2;
+      const nx = p.x + s.u * speed * 5, ny = p.y + s.v * speed * 5;
+      ctx.strokeStyle = colorFor(s.mag);
+      ctx.globalAlpha = 0.28 + Math.min(0.5, s.mag * 0.55);
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(nx, ny); ctx.stroke();
+      p.x = nx; p.y = ny; p.age++;
+      if (p.age > p.life || p.x > width + 30 || p.y < -30 || p.y > height + 30) particles[i] = spawn();
+    }
+    ctx.globalAlpha = 1;
+    animId = requestAnimationFrame(frame);
+  }
+  async function boot() {
+    resize();
+    try {
+      grid = await fetchOpenMeteo();
+      usingLive = true;
+    } catch (e) {
+      grid = forwardField(0);
+      usingLive = false;
+    }
+    rebuildParticles();
+    cancelAnimationFrame(animId);
+    animId = requestAnimationFrame(frame);
+  }
+  window.addEventListener("resize", resize);
+  boot();
+})();
+  </script>
+</body>
+</html>
