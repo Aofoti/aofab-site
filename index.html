@@ -3,34 +3,58 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b0f19" />
+  <meta name="theme-color" content="#05070d" />
   <meta name="description" content="AoFab" />
   <title>AoFab</title>
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <style>
     :root {
-      --bg: #0b0f19;
-      --cyan: #22d3ee;
-      --emerald: #34d399;
-      --text: rgba(232, 238, 247, 0.92);
+      --bg: #05070d;
+      --cyan: #5eead4;
+      --ice: #67e8f9;
+      --signal: #22d3ee;
+      --text: rgba(226, 232, 240, 0.88);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       width: 100%; height: 100%; overflow: hidden;
       background: var(--bg); color: var(--text);
-      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
       -webkit-font-smoothing: antialiased;
     }
     #field {
       position: fixed; inset: 0; width: 100vw; height: 100vh; display: block;
       background: var(--bg);
     }
-    .vignette {
+    .grid {
       position: fixed; inset: 0; pointer-events: none; z-index: 1;
-      background: radial-gradient(ellipse at center, transparent 40%, rgba(11, 15, 25, 0.72) 100%);
+      background-image:
+        linear-gradient(rgba(94, 234, 212, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(94, 234, 212, 0.035) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(ellipse at center, black 18%, transparent 72%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 18%, transparent 72%);
+      opacity: 0.55;
+    }
+    .vignette {
+      position: fixed; inset: 0; pointer-events: none; z-index: 2;
+      background:
+        radial-gradient(ellipse at 50% 42%, transparent 28%, rgba(5, 7, 13, 0.82) 100%),
+        linear-gradient(180deg, rgba(5, 7, 13, 0.55) 0%, transparent 18%, transparent 82%, rgba(5, 7, 13, 0.7) 100%);
+    }
+    .scan {
+      position: fixed; inset: 0; pointer-events: none; z-index: 3;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(5, 7, 13, 0.08) 3px
+      );
+      opacity: 0.35;
+      mix-blend-mode: multiply;
     }
     .hero {
-      position: fixed; inset: 0; z-index: 2;
+      position: fixed; inset: 0; z-index: 4;
       display: grid; place-items: center;
       padding: clamp(1.25rem, 4vw, 3rem);
       pointer-events: none;
@@ -38,21 +62,42 @@
     .mark {
       text-align: center;
       user-select: none;
+      position: relative;
     }
+    .mark::before,
+    .mark::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      width: min(42vw, 11.5rem);
+      height: 1px;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, transparent, rgba(94, 234, 212, 0.45), transparent);
+    }
+    .mark::before { top: -1.35rem; }
+    .mark::after { bottom: -1.35rem; }
     h1 {
-      font-size: clamp(2rem, 6vw, 3.75rem);
-      font-weight: 650;
-      letter-spacing: 0.28em;
-      text-indent: 0.28em;
+      font-family: "IBM Plex Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: clamp(1.85rem, 5.2vw, 3.25rem);
+      font-weight: 500;
+      letter-spacing: 0.42em;
+      text-indent: 0.42em;
       line-height: 1;
       color: var(--text);
-      text-shadow: 0 0 40px rgba(34, 211, 238, 0.18);
+      text-shadow:
+        0 0 18px rgba(34, 211, 238, 0.22),
+        0 0 48px rgba(94, 234, 212, 0.12);
     }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet" />
 </head>
 <body>
   <canvas id="field" aria-hidden="true"></canvas>
+  <div class="grid" aria-hidden="true"></div>
   <div class="vignette"></div>
+  <div class="scan" aria-hidden="true"></div>
   <main class="hero">
     <div class="mark">
       <h1>AOFAB</h1>
@@ -63,7 +108,7 @@
   "use strict";
   const canvas = document.getElementById("field");
   const ctx = canvas.getContext("2d", { alpha: false });
-  const COLS = 56, ROWS = 32, PARTICLE_COUNT = 3800, FADE = 0.078;
+  const COLS = 64, ROWS = 36, PARTICLE_COUNT = 2600, FADE = 0.085;
   let width = 0, height = 0, dpr = 1, grid = null, particles = null, animId = 0, time = 0, usingLive = false;
 
   function resize() {
@@ -72,7 +117,7 @@
     canvas.width = Math.floor(width * dpr); canvas.height = Math.floor(height * dpr);
     canvas.style.width = width + "px"; canvas.style.height = height + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = "#0b0f19"; ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#05070d"; ctx.fillRect(0, 0, width, height);
     if (grid) rebuildParticles();
   }
   function cellAt(ix, iy) {
@@ -93,9 +138,11 @@
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {
         const nx = x / COLS, ny = y / ROWS;
-        // Dominant rightward drift + soft undulation
-        const u = 0.72 + Math.sin((ny * 5 + t * 0.35) * Math.PI) * 0.22 + Math.sin((nx * 2 - t * 0.2) * Math.PI) * 0.12;
-        const v = Math.sin((nx * 3 + t * 0.25) * Math.PI) * 0.28 + Math.cos((ny * 4 - t * 0.18) * Math.PI) * 0.12;
+        // Slow laminar drift + sparse laminar shear (neat, not chaotic)
+        const shear = Math.sin((ny * 2.2 + t * 0.12) * Math.PI) * 0.14;
+        const lane = Math.sin((Math.floor(ny * 9) / 9) * Math.PI * 2 + t * 0.08) * 0.08;
+        const u = 0.78 + shear + Math.sin((nx * 1.4 - t * 0.09) * Math.PI) * 0.06;
+        const v = lane + Math.cos((nx * 2.4 + t * 0.11) * Math.PI) * 0.1;
         cells[y * COLS + x] = { u, v };
       }
     }
@@ -135,8 +182,7 @@
           const w = 1 / (dlon * dlon + dlat * dlat + 1);
           wu += s.u * w; wv += s.v * w; wsum += w;
         }
-        // Bias live wind forward (screen +x)
-        cells[y * COLS + x] = { u: wu / wsum + 0.45, v: wv / wsum * 0.65 };
+        cells[y * COLS + x] = { u: wu / wsum + 0.55, v: wv / wsum * 0.45 };
       }
     }
     return normalizeField(cells);
@@ -145,23 +191,28 @@
     particles = d3.range(PARTICLE_COUNT).map(spawn);
   }
   function spawn() {
-    return { x: Math.random() * width * 0.15 - 40, y: Math.random() * height, age: Math.random() * 90, life: 70 + Math.random() * 110 };
+    return {
+      x: Math.random() * width * 0.12 - 36,
+      y: Math.random() * height,
+      age: Math.random() * 120,
+      life: 90 + Math.random() * 140
+    };
   }
   function colorFor(mag) {
-    return d3.interpolateRgb("#22d3ee", "#34d399")(Math.max(0, Math.min(1, mag)));
+    return d3.interpolateRgb("#0e7490", "#5eead4")(0.35 + Math.min(0.65, mag * 0.9));
   }
   function frame(ts) {
     time = ts * 0.001;
     if (!usingLive) grid = forwardField(time);
-    ctx.fillStyle = "rgba(11, 15, 25, " + FADE + ")";
+    ctx.fillStyle = "rgba(5, 7, 13, " + FADE + ")";
     ctx.fillRect(0, 0, width, height);
-    ctx.lineWidth = 1.1; ctx.lineCap = "round";
+    ctx.lineWidth = 0.85; ctx.lineCap = "round";
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i], s = sample(p.x, p.y);
-      const speed = 1.1 + s.mag * 3.2;
-      const nx = p.x + s.u * speed * 5, ny = p.y + s.v * speed * 5;
+      const speed = 0.85 + s.mag * 2.4;
+      const nx = p.x + s.u * speed * 4.2, ny = p.y + s.v * speed * 4.2;
       ctx.strokeStyle = colorFor(s.mag);
-      ctx.globalAlpha = 0.28 + Math.min(0.5, s.mag * 0.55);
+      ctx.globalAlpha = 0.16 + Math.min(0.38, s.mag * 0.42);
       ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(nx, ny); ctx.stroke();
       p.x = nx; p.y = ny; p.age++;
       if (p.age > p.life || p.x > width + 30 || p.y < -30 || p.y > height + 30) particles[i] = spawn();
