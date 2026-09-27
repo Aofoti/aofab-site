@@ -110,10 +110,10 @@
       display: flex;
       flex-direction: column;
       gap: 0.45rem;
-      padding: 0.65rem 0.75rem;
+      padding: 0.5rem 0.75rem 0.65rem;
       min-width: min(15.5rem, calc(100vw - 1.5rem));
       max-height: min(70vh, calc(100vh - 1.5rem - env(safe-area-inset-bottom, 0px)));
-      overflow-y: auto;
+      overflow: hidden;
       overscroll-behavior: contain;
       background: var(--panel);
       border: 1px solid var(--line);
@@ -125,8 +125,72 @@
       letter-spacing: 0.04em;
       user-select: none;
       pointer-events: auto;
+      transition: min-width 0.18s ease, padding 0.18s ease;
+    }
+    .hud.collapsed {
+      min-width: 0;
+      width: auto;
+      padding: 0.4rem 0.5rem;
+      gap: 0;
+    }
+    .hud-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      min-height: 1.35rem;
+      flex: 0 0 auto;
+    }
+    .hud.collapsed .hud-head {
+      justify-content: center;
+    }
+    .hud-title {
+      opacity: 0.85;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .hud.collapsed .hud-title {
+      display: none;
+    }
+    .hud-toggle {
+      flex: 0 0 auto;
+      width: 1.7rem;
+      height: 1.7rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(94, 234, 212, 0.08);
+      color: var(--ice);
+      font: inherit;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      line-height: 1;
+      padding: 0;
+    }
+    .hud-toggle:hover {
+      background: rgba(94, 234, 212, 0.16);
+    }
+    .hud-toggle svg {
+      width: 0.85rem;
+      height: 0.85rem;
+      display: block;
+      transition: transform 0.18s ease;
+    }
+    .hud.collapsed .hud-toggle svg {
+      transform: rotate(180deg);
+    }
+    .hud-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      max-height: calc(min(70vh, calc(100vh - 1.5rem - env(safe-area-inset-bottom, 0px))) - 2.4rem);
       scrollbar-width: thin;
       scrollbar-color: rgba(94, 234, 212, 0.35) transparent;
+    }
+    .hud.collapsed .hud-body {
+      display: none;
     }
     .hud .btn-reset {
       flex: 1;
@@ -237,45 +301,49 @@
       <img src="ao-mark.png" width="1024" height="1024" alt="AoFab" />
     </div>
   </main>
-  <aside class="hud" aria-label="Field controls">
-    <div class="hud-row">
-      <label for="density">Density</label>
-      <input id="density" type="range" min="1" max="5" step="1" value="3" />
+  <aside class="hud" id="hud" aria-label="Field controls">
+    <div class="hud-head">
+      <span class="hud-title">Controls</span>
+      <button type="button" id="hud-toggle" class="hud-toggle" aria-expanded="true" aria-controls="hud-body" title="Minimize controls">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.2 6.1 8 10.9l4.8-4.8 1.1 1.1L8 13.1 2.1 7.2z"/></svg>
+      </button>
     </div>
-    <div class="hud-row">
-      <label for="speed">Speed</label>
-      <input id="speed" type="range" min="1" max="5" step="1" value="3" />
-    </div>
-    <div class="hud-row">
-      <label for="trails">Trails</label>
-      <input id="trails" type="range" min="1" max="5" step="1" value="3" />
-    </div>
-    <div class="hud-row">
-      <label for="zoom">Zoom</label>
-      <input id="zoom" type="range" min="1" max="5" step="1" value="3" />
-    </div>
-    <div class="hud-row">
-      <label for="vectors">Vectors</label>
-      <button id="vectors" class="toggle" type="button" aria-pressed="false" title="Velocity vectors"></button>
-    </div>
-    <div class="hud-row">
-      <label for="spin">Spin</label>
-      <button id="spin" class="toggle" type="button" aria-pressed="false" title="Auto-rotate"></button>
-    </div>
-    <div class="hud-row">
-      <label for="grid">Grid</label>
-      <button id="grid" class="toggle on" type="button" aria-pressed="true" title="Graticule"></button>
-    </div>
-    <div class="hud-row">
-      <label>Project</label>
-      <div class="seg" role="group" aria-label="Projection">
-        <button type="button" id="proj-ortho" class="active" data-proj="orthographic">Ortho</button>
-        <button type="button" id="proj-equi" data-proj="equirectangular">Equirect</button>
+    <div class="hud-body" id="hud-body">
+      <div class="hud-row">
+        <label for="density">Density</label>
+        <input id="density" type="range" min="1" max="5" step="1" value="3" />
       </div>
-    </div>
-    <div class="hud-row">
-      <label for="reset">Reset</label>
-      <button id="reset" class="btn-reset" type="button" title="Restore defaults">Reset</button>
+      <div class="hud-row">
+        <label for="speed">Speed</label>
+        <input id="speed" type="range" min="1" max="5" step="1" value="3" />
+      </div>
+      <div class="hud-row">
+        <label for="trails">Trails</label>
+        <input id="trails" type="range" min="1" max="5" step="1" value="3" />
+      </div>
+      <div class="hud-row">
+        <label for="zoom">Zoom</label>
+        <input id="zoom" type="range" min="1" max="5" step="1" value="3" />
+      </div>
+      <div class="hud-row">
+        <label for="vectors">Vectors</label>
+        <button id="vectors" class="toggle" type="button" aria-pressed="false" title="Velocity vectors"></button>
+      </div>
+      <div class="hud-row">
+        <label for="grid">Grid</label>
+        <button id="grid" class="toggle on" type="button" aria-pressed="true" title="Graticule"></button>
+      </div>
+      <div class="hud-row">
+        <label>Project</label>
+        <div class="seg" role="group" aria-label="Projection">
+          <button type="button" id="proj-ortho" class="active" data-proj="orthographic">Ortho</button>
+          <button type="button" id="proj-equi" data-proj="equirectangular">Equirect</button>
+        </div>
+      </div>
+      <div class="hud-row">
+        <label for="reset">Reset</label>
+        <button id="reset" class="btn-reset" type="button" title="Restore defaults">Reset</button>
+      </div>
     </div>
   </aside>
   <script>
@@ -297,8 +365,6 @@
   const DEFAULT_LAMBDA = -20 * Math.PI / 180;
   const DEFAULT_PHI = -18 * Math.PI / 180;
   const DEFAULT_GAMMA = 0;
-  const SPIN_RATE = 0.00035; // rad per ms at 60fps-ish via dt
-
   let width = 0, height = 0, dpr = 1;
   let windU = null, windV = null; // lon/lat grids, row-major lat×lon
   let usingLive = false;
@@ -311,9 +377,7 @@
   let speedLevel = 3;
   let trailsLevel = 3;
   let zoomLevel = 3;
-  let autoSpin = false;
   let showGrid = true;
-  let dragging = false;
   let projectionMode = "orthographic";
 
   // rotation: λ (yaw), φ (pitch), γ (roll)
@@ -601,13 +665,6 @@
     lastTs = ts;
     time = ts * 0.001;
 
-    if (autoSpin && !dragging) {
-      lambda += SPIN_RATE * dt;
-      // keep lambda bounded for numeric hygiene
-      if (lambda > Math.PI * 4 || lambda < -Math.PI * 4) lambda = ((lambda + Math.PI) % (Math.PI * 2)) - Math.PI;
-      rebuildProjection();
-    }
-
     if (!usingLive) syntheticField(time);
 
     ctx.fillStyle = "rgba(5, 7, 13, " + trailFade() + ")";
@@ -648,7 +705,6 @@
   // --- interaction: drag rotate ---
   const drag = d3.drag()
     .on("start", function (event) {
-      dragging = true;
       canvas.__rot0 = [lambda, phi, gamma];
       canvas.__xy0 = [event.x, event.y];
     })
@@ -665,9 +721,6 @@
         phi = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, canvas.__rot0[1] - dy * 0.003));
       }
       rebuildProjection();
-    })
-    .on("end", function () {
-      dragging = false;
     });
 
   d3.select(canvas).call(drag);
@@ -678,7 +731,6 @@
   const trailsEl = document.getElementById("trails");
   const zoomEl = document.getElementById("zoom");
   const vectorsEl = document.getElementById("vectors");
-  const spinEl = document.getElementById("spin");
   const gridEl = document.getElementById("grid");
   const resetEl = document.getElementById("reset");
   const orthoBtn = document.getElementById("proj-ortho");
@@ -708,12 +760,6 @@
     vectorsEl.setAttribute("aria-pressed", showVectors ? "true" : "false");
   });
 
-  spinEl.addEventListener("click", () => {
-    autoSpin = !autoSpin;
-    spinEl.classList.toggle("on", autoSpin);
-    spinEl.setAttribute("aria-pressed", autoSpin ? "true" : "false");
-  });
-
   gridEl.addEventListener("click", () => {
     showGrid = !showGrid;
     gridEl.classList.toggle("on", showGrid);
@@ -738,7 +784,22 @@
     equiBtn.classList.toggle("active", mode === "equirectangular");
     rebuildProjection();
   }
-  orthoBtn.addEventListener("click", () => setProjection("orthographic"));
+  const hudEl = document.getElementById("hud");
+  const hudToggle = document.getElementById("hud-toggle");
+  function setHudCollapsed(collapsed) {
+    hudEl.classList.toggle("collapsed", collapsed);
+    hudToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    hudToggle.title = collapsed ? "Expand controls" : "Minimize controls";
+    try { localStorage.setItem("aofab-hud-collapsed", collapsed ? "1" : "0"); } catch (e) {}
+  }
+  hudToggle.addEventListener("click", () => {
+    setHudCollapsed(!hudEl.classList.contains("collapsed"));
+  });
+  try {
+    if (localStorage.getItem("aofab-hud-collapsed") === "1") setHudCollapsed(true);
+  } catch (e) {}
+
+    orthoBtn.addEventListener("click", () => setProjection("orthographic"));
   equiBtn.addEventListener("click", () => setProjection("equirectangular"));
 
   async function boot() {
