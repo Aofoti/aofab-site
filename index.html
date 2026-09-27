@@ -7,7 +7,7 @@
   <meta name="description" content="AoFab" />
   <title>AoFab</title>
   <link rel="icon" type="image/png" href="favicon.png" />
-  <link rel="apple-touch-icon" href="favicon.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <style>
     :root {
@@ -15,7 +15,11 @@
       --cyan: #5eead4;
       --ice: #67e8f9;
       --signal: #22d3ee;
+      --deep: #0e7490;
       --text: rgba(226, 232, 240, 0.88);
+      --muted: rgba(94, 234, 212, 0.55);
+      --panel: rgba(5, 7, 13, 0.72);
+      --line: rgba(94, 234, 212, 0.22);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -23,11 +27,13 @@
       background: var(--bg); color: var(--text);
       font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
       -webkit-font-smoothing: antialiased;
+      touch-action: none;
     }
     #field {
       position: fixed; inset: 0; width: 100vw; height: 100vh; display: block;
-      background: var(--bg);
+      background: var(--bg); cursor: grab; touch-action: none;
     }
+    #field:active { cursor: grabbing; }
     .grid {
       position: fixed; inset: 0; pointer-events: none; z-index: 1;
       background-image:
@@ -80,7 +86,8 @@
     }
     .mark::before { top: -1.5rem; }
     .mark::after { bottom: -1.5rem; }
-    .mark img {
+    .mark img,
+    .mark svg {
       display: block;
       width: clamp(5.5rem, 18vw, 9.5rem);
       height: auto;
@@ -95,6 +102,98 @@
       overflow: hidden; clip: rect(0,0,0,0);
       white-space: nowrap; border: 0;
     }
+    .hud {
+      position: fixed;
+      left: max(0.75rem, env(safe-area-inset-left));
+      bottom: max(0.75rem, env(safe-area-inset-bottom));
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      padding: 0.65rem 0.75rem;
+      min-width: min(15.5rem, calc(100vw - 1.5rem));
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: var(--cyan);
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      user-select: none;
+      pointer-events: auto;
+    }
+    .hud-row {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      min-height: 1.35rem;
+    }
+    .hud label {
+      flex: 0 0 4.2rem;
+      opacity: 0.85;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .hud input[type="range"] {
+      flex: 1;
+      accent-color: var(--ice);
+      height: 0.35rem;
+      cursor: pointer;
+    }
+    .hud .seg {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+      flex: 1;
+    }
+    .hud .seg button {
+      flex: 1;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      letter-spacing: inherit;
+      padding: 0.28rem 0.35rem;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .hud .seg button.active {
+      background: rgba(94, 234, 212, 0.14);
+      color: var(--ice);
+    }
+    .hud .toggle {
+      appearance: none;
+      width: 2.1rem;
+      height: 1.15rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(14, 116, 144, 0.25);
+      position: relative;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    .hud .toggle::after {
+      content: "";
+      position: absolute;
+      top: 1px; left: 2px;
+      width: 0.85rem; height: 0.85rem;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    .hud .toggle.on {
+      background: rgba(94, 234, 212, 0.22);
+    }
+    .hud .toggle.on::after {
+      transform: translateX(0.85rem);
+      background: var(--ice);
+    }
+    @media (max-width: 480px) {
+      .hud { font-size: 0.68rem; min-width: min(13.5rem, calc(100vw - 1.2rem)); }
+      .hud label { flex-basis: 3.6rem; }
+    }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -108,64 +207,157 @@
   <main class="hero">
     <div class="mark">
       <h1 class="visually-hidden">AoFab</h1>
-      <img src="ao-mark.png" width="100" height="100" alt="AoFab" />
+      <img src="ao-mark.png" width="1024" height="1024" alt="AoFab" />
     </div>
   </main>
+  <aside class="hud" aria-label="Field controls">
+    <div class="hud-row">
+      <label for="density">Density</label>
+      <input id="density" type="range" min="1" max="5" step="1" value="3" />
+    </div>
+    <div class="hud-row">
+      <label for="vectors">Vectors</label>
+      <button id="vectors" class="toggle" type="button" aria-pressed="false" title="Velocity vectors"></button>
+    </div>
+    <div class="hud-row">
+      <label>Project</label>
+      <div class="seg" role="group" aria-label="Projection">
+        <button type="button" id="proj-ortho" class="active" data-proj="orthographic">Ortho</button>
+        <button type="button" id="proj-equi" data-proj="equirectangular">Equirect</button>
+      </div>
+    </div>
+  </aside>
   <script>
 (function () {
   "use strict";
+
   const canvas = document.getElementById("field");
   const ctx = canvas.getContext("2d", { alpha: false });
-  const COLS = 64, ROWS = 36, PARTICLE_COUNT = 2600, FADE = 0.085;
-  let width = 0, height = 0, dpr = 1, grid = null, particles = null, animId = 0, time = 0, usingLive = false;
+
+  const LON_CELLS = 72;
+  const LAT_CELLS = 36;
+  const FADE = 0.075;
+  const DENSITY_MAP = [500, 1100, 1800, 2800, 4200];
+
+  let width = 0, height = 0, dpr = 1;
+  let windU = null, windV = null; // lon/lat grids, row-major lat×lon
+  let usingLive = false;
+  let particles = [];
+  let animId = 0;
+  let time = 0;
+  let showVectors = false;
+  let densityLevel = 3;
+  let projectionMode = "orthographic";
+
+  // rotation: λ (yaw), φ (pitch), γ (roll)
+  let lambda = -20 * Math.PI / 180;
+  let phi = -18 * Math.PI / 180;
+  let gamma = 0;
+
+  let projection = null;
+  let pathGen = null;
 
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
-    width = window.innerWidth; height = window.innerHeight;
-    canvas.width = Math.floor(width * dpr); canvas.height = Math.floor(height * dpr);
-    canvas.style.width = width + "px"; canvas.style.height = height + "px";
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = "#05070d"; ctx.fillRect(0, 0, width, height);
-    if (grid) rebuildParticles();
+    ctx.fillStyle = "#05070d";
+    ctx.fillRect(0, 0, width, height);
+    rebuildProjection();
+    rebuildParticles();
   }
-  function cellAt(ix, iy) {
-    ix = ((ix % COLS) + COLS) % COLS;
-    iy = Math.max(0, Math.min(ROWS - 1, iy));
-    return grid[iy * COLS + ix];
+
+  function rebuildProjection() {
+    const scale = projectionMode === "orthographic"
+      ? Math.min(width, height) * 0.42
+      : Math.min(width / (2 * Math.PI), height / Math.PI) * 0.92;
+    if (projectionMode === "orthographic") {
+      projection = d3.geoOrthographic()
+        .scale(scale)
+        .translate([width / 2, height / 2])
+        .clipAngle(90)
+        .rotate([lambda * 180 / Math.PI, phi * 180 / Math.PI, gamma * 180 / Math.PI]);
+    } else {
+      projection = d3.geoEquirectangular()
+        .scale(scale)
+        .translate([width / 2, height / 2])
+        .rotate([lambda * 180 / Math.PI, phi * 180 / Math.PI, 0]);
+    }
+    pathGen = d3.geoPath(projection, ctx);
   }
-  function sample(x, y) {
-    const gx = (x / width) * COLS, gy = (y / height) * ROWS;
-    const x0 = Math.floor(gx), y0 = Math.floor(gy), tx = gx - x0, ty = gy - y0;
-    const a = cellAt(x0, y0), b = cellAt(x0 + 1, y0), c = cellAt(x0, y0 + 1), d = cellAt(x0 + 1, y0 + 1);
-    const u = a.u * (1 - tx) * (1 - ty) + b.u * tx * (1 - ty) + c.u * (1 - tx) * ty + d.u * tx * ty;
-    const v = a.v * (1 - tx) * (1 - ty) + b.v * tx * (1 - ty) + c.v * (1 - tx) * ty + d.v * tx * ty;
+
+  function idx(ilon, ilat) {
+    ilon = ((ilon % LON_CELLS) + LON_CELLS) % LON_CELLS;
+    ilat = Math.max(0, Math.min(LAT_CELLS - 1, ilat));
+    return ilat * LON_CELLS + ilon;
+  }
+
+  function lonLatToCell(lon, lat) {
+    const gx = ((lon + 180) / 360) * LON_CELLS;
+    const gy = ((90 - lat) / 180) * LAT_CELLS;
+    return { gx, gy };
+  }
+
+  function sampleWind(lon, lat) {
+    if (!windU) return { u: 0, v: 0, mag: 0 };
+    const { gx, gy } = lonLatToCell(lon, lat);
+    const x0 = Math.floor(gx), y0 = Math.floor(gy);
+    const tx = gx - x0, ty = Math.max(0, Math.min(1, gy - y0));
+    const i00 = idx(x0, y0), i10 = idx(x0 + 1, y0);
+    const i01 = idx(x0, y0 + 1), i11 = idx(x0 + 1, y0 + 1);
+    const u = windU[i00] * (1 - tx) * (1 - ty) + windU[i10] * tx * (1 - ty)
+            + windU[i01] * (1 - tx) * ty + windU[i11] * tx * ty;
+    const v = windV[i00] * (1 - tx) * (1 - ty) + windV[i10] * tx * (1 - ty)
+            + windV[i01] * (1 - tx) * ty + windV[i11] * tx * ty;
     return { u, v, mag: Math.hypot(u, v) };
   }
-  function forwardField(t) {
-    const cells = new Array(COLS * ROWS);
-    for (let y = 0; y < ROWS; y++) {
-      for (let x = 0; x < COLS; x++) {
-        const nx = x / COLS, ny = y / ROWS;
-        // Slow laminar drift + sparse laminar shear (neat, not chaotic)
-        const shear = Math.sin((ny * 2.2 + t * 0.12) * Math.PI) * 0.14;
-        const lane = Math.sin((Math.floor(ny * 9) / 9) * Math.PI * 2 + t * 0.08) * 0.08;
-        const u = 0.78 + shear + Math.sin((nx * 1.4 - t * 0.09) * Math.PI) * 0.06;
-        const v = lane + Math.cos((nx * 2.4 + t * 0.11) * Math.PI) * 0.1;
-        cells[y * COLS + x] = { u, v };
+
+  function normalizeGrids(uArr, vArr) {
+    let max = 1e-6;
+    for (let i = 0; i < uArr.length; i++) max = Math.max(max, Math.hypot(uArr[i], vArr[i]));
+    for (let i = 0; i < uArr.length; i++) {
+      uArr[i] /= max;
+      vArr[i] /= max;
+    }
+  }
+
+  function syntheticField(t) {
+    const uArr = new Float32Array(LON_CELLS * LAT_CELLS);
+    const vArr = new Float32Array(LON_CELLS * LAT_CELLS);
+    for (let j = 0; j < LAT_CELLS; j++) {
+      for (let i = 0; i < LON_CELLS; i++) {
+        const lon = -180 + (i / LON_CELLS) * 360;
+        const lat = 90 - ((j + 0.5) / LAT_CELLS) * 180;
+        const lonR = lon * Math.PI / 180;
+        const latR = lat * Math.PI / 180;
+        // neat forward zonal jet + mild meridional undulation
+        const jet = 0.55 + 0.35 * Math.cos(latR * 2.2);
+        const wave = Math.sin(lonR * 3 + t * 0.15) * Math.cos(latR) * 0.22;
+        const u = jet + Math.sin(lonR * 2 - t * 0.1) * 0.08 * Math.cos(latR);
+        const v = wave + Math.sin(latR * 3 + t * 0.12) * 0.12;
+        const k = j * LON_CELLS + i;
+        uArr[k] = u;
+        vArr[k] = v;
       }
     }
-    return normalizeField(cells);
+    normalizeGrids(uArr, vArr);
+    windU = uArr;
+    windV = vArr;
   }
-  function normalizeField(cells) {
-    let max = 1e-6;
-    for (const c of cells) max = Math.max(max, Math.hypot(c.u, c.v));
-    return cells.map((c) => ({ u: c.u / max, v: c.v / max }));
-  }
+
   async function fetchOpenMeteo() {
-    const lats = d3.range(-50, 51, 12), lons = d3.range(-160, 161, 20);
+    const lats = d3.range(-60, 61, 15);
+    const lons = d3.range(-165, 166, 30);
     const url = "https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({
-      latitude: lats.join(","), longitude: lons.join(","),
-      current: "wind_speed_10m,wind_direction_10m", wind_speed_unit: "ms"
+      latitude: lats.join(","),
+      longitude: lons.join(","),
+      current: "wind_speed_10m,wind_direction_10m",
+      wind_speed_unit: "ms"
     }).toString();
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error("HTTP " + res.status);
@@ -176,74 +368,258 @@
       if (!p.current) continue;
       const spd = +p.current.wind_speed_10m || 0;
       const dir = ((+p.current.wind_direction_10m || 0) * Math.PI) / 180;
-      samples.push({ lon: +p.longitude, lat: +p.latitude, u: -Math.sin(dir) * spd, v: -Math.cos(dir) * spd });
+      // meteorological: from-direction → toward u(east), v(north)
+      samples.push({
+        lon: +p.longitude,
+        lat: +p.latitude,
+        u: -Math.sin(dir) * spd,
+        v: -Math.cos(dir) * spd
+      });
     }
     if (samples.length < 6) throw new Error("sparse");
-    const cells = new Array(COLS * ROWS);
-    for (let y = 0; y < ROWS; y++) {
-      for (let x = 0; x < COLS; x++) {
-        const lon = -180 + (x / (COLS - 1)) * 360, lat = 65 - (y / (ROWS - 1)) * 130;
+
+    const uArr = new Float32Array(LON_CELLS * LAT_CELLS);
+    const vArr = new Float32Array(LON_CELLS * LAT_CELLS);
+    for (let j = 0; j < LAT_CELLS; j++) {
+      for (let i = 0; i < LON_CELLS; i++) {
+        const lon = -180 + (i / (LON_CELLS - 1)) * 360;
+        const lat = 90 - (j / (LAT_CELLS - 1)) * 180;
         let wu = 0, wv = 0, wsum = 0;
         for (const s of samples) {
           const dlon = Math.min(Math.abs(s.lon - lon), 360 - Math.abs(s.lon - lon));
           const dlat = Math.abs(s.lat - lat);
-          const w = 1 / (dlon * dlon + dlat * dlat + 1);
-          wu += s.u * w; wv += s.v * w; wsum += w;
+          const w = 1 / (dlon * dlon + dlat * dlat + 2.5);
+          wu += s.u * w;
+          wv += s.v * w;
+          wsum += w;
         }
-        cells[y * COLS + x] = { u: wu / wsum + 0.55, v: wv / wsum * 0.45 };
+        // bias toward neat eastward drift for visual continuity
+        uArr[j * LON_CELLS + i] = wu / wsum + 2.2;
+        vArr[j * LON_CELLS + i] = (wv / wsum) * 0.65;
       }
     }
-    return normalizeField(cells);
+    normalizeGrids(uArr, vArr);
+    windU = uArr;
+    windV = vArr;
   }
-  function rebuildParticles() {
-    particles = d3.range(PARTICLE_COUNT).map(spawn);
+
+  function particleCount() {
+    return DENSITY_MAP[Math.max(0, Math.min(4, densityLevel - 1))];
   }
-  function spawn() {
+
+  function spawnParticle() {
     return {
-      x: Math.random() * width * 0.12 - 36,
-      y: Math.random() * height,
-      age: Math.random() * 120,
-      life: 90 + Math.random() * 140
+      lon: Math.random() * 360 - 180,
+      lat: (Math.random() * 140 - 70),
+      age: Math.random() * 80,
+      life: 70 + Math.random() * 140
     };
   }
-  function colorFor(mag) {
-    return d3.interpolateRgb("#0e7490", "#5eead4")(0.35 + Math.min(0.65, mag * 0.9));
+
+  function rebuildParticles() {
+    const n = particleCount();
+    particles = d3.range(n).map(spawnParticle);
   }
+
+  function colorFor(mag) {
+    return d3.interpolateRgb("#0e7490", "#5eead4")(0.28 + Math.min(0.72, mag * 0.95));
+  }
+
+  function drawGlobeOutline() {
+    ctx.save();
+    ctx.beginPath();
+    if (projectionMode === "orthographic") {
+      pathGen({ type: "Sphere" });
+      ctx.strokeStyle = "rgba(94, 234, 212, 0.14)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // faint graticule
+      ctx.beginPath();
+      pathGen(d3.geoGraticule().step([30, 30])());
+      ctx.strokeStyle = "rgba(94, 234, 212, 0.05)";
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+    } else {
+      pathGen(d3.geoGraticule().step([30, 30])());
+      ctx.strokeStyle = "rgba(94, 234, 212, 0.05)";
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawVectors() {
+    if (!showVectors || !windU) return;
+    const stepLon = 20;
+    const stepLat = 15;
+    ctx.save();
+    ctx.lineWidth = 0.9;
+    ctx.lineCap = "round";
+    for (let lat = -60; lat <= 60; lat += stepLat) {
+      for (let lon = -180; lon < 180; lon += stepLon) {
+        const s = sampleWind(lon, lat);
+        if (s.mag < 0.05) continue;
+        const p0 = projection([lon, lat]);
+        if (!p0) continue;
+        // step along geographic velocity for arrow tip
+        const dt = 4.5;
+        const lon1 = lon + s.u * dt / Math.max(0.2, Math.cos(lat * Math.PI / 180));
+        const lat1 = Math.max(-85, Math.min(85, lat + s.v * dt));
+        const p1 = projection([((lon1 + 540) % 360) - 180, lat1]);
+        if (!p1) continue;
+        // clip check for ortho
+        if (projectionMode === "orthographic") {
+          const r = [lambda * 180 / Math.PI, phi * 180 / Math.PI, gamma * 180 / Math.PI];
+          // simple: if either point far from center beyond scale, skip
+          const cx = width / 2, cy = height / 2;
+          const sc = projection.scale();
+          if (Math.hypot(p0[0] - cx, p0[1] - cy) > sc * 0.98) continue;
+        }
+        ctx.strokeStyle = "rgba(103, 232, 249, " + (0.18 + Math.min(0.35, s.mag * 0.4)) + ")";
+        ctx.beginPath();
+        ctx.moveTo(p0[0], p0[1]);
+        ctx.lineTo(p1[0], p1[1]);
+        ctx.stroke();
+        // arrow head
+        const ang = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]);
+        const ah = 3.2;
+        ctx.beginPath();
+        ctx.moveTo(p1[0], p1[1]);
+        ctx.lineTo(p1[0] - ah * Math.cos(ang - 0.45), p1[1] - ah * Math.sin(ang - 0.45));
+        ctx.moveTo(p1[0], p1[1]);
+        ctx.lineTo(p1[0] - ah * Math.cos(ang + 0.45), p1[1] - ah * Math.sin(ang + 0.45));
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  function advect(p) {
+    const s = sampleWind(p.lon, p.lat);
+    // geographic advection; u=east, v=north (degrees-ish scaled)
+    const cosLat = Math.max(0.15, Math.cos(p.lat * Math.PI / 180));
+    const speed = 0.35 + s.mag * 0.9;
+    p.lon += (s.u * speed) / cosLat;
+    p.lat += s.v * speed * 0.85;
+    if (p.lon > 180) p.lon -= 360;
+    if (p.lon < -180) p.lon += 360;
+    if (p.lat > 85 || p.lat < -85) {
+      Object.assign(p, spawnParticle());
+      return null;
+    }
+    p.age++;
+    if (p.age > p.life) {
+      Object.assign(p, spawnParticle());
+      return null;
+    }
+    return s;
+  }
+
   function frame(ts) {
     time = ts * 0.001;
-    if (!usingLive) grid = forwardField(time);
+    if (!usingLive) syntheticField(time);
+
     ctx.fillStyle = "rgba(5, 7, 13, " + FADE + ")";
     ctx.fillRect(0, 0, width, height);
-    ctx.lineWidth =0.85; ctx.lineCap = "round";
+
+    drawGlobeOutline();
+    drawVectors();
+
+    ctx.lineWidth = 1.05;
+    ctx.lineCap = "round";
+
     for (let i = 0; i < particles.length; i++) {
-      const p = particles[i], s = sample(p.x, p.y);
-      const speed = 0.85 + s.mag * 2.4;
-      const nx = p.x + s.u * speed * 4.2, ny = p.y + s.v * speed * 4.2;
+      const p = particles[i];
+      const prev = projection([p.lon, p.lat]);
+      const s = advect(p);
+      if (!s) continue;
+      const next = projection([p.lon, p.lat]);
+      if (!prev || !next) continue;
+      if (projectionMode === "orthographic") {
+        const cx = width / 2, cy = height / 2, sc = projection.scale();
+        if (Math.hypot(prev[0] - cx, prev[1] - cy) > sc * 1.02) continue;
+        if (Math.hypot(next[0] - cx, next[1] - cy) > sc * 1.02) continue;
+      }
+      // skip huge jumps from date-line wrap in equirect
+      if (Math.hypot(next[0] - prev[0], next[1] - prev[1]) > 40) continue;
+
       ctx.strokeStyle = colorFor(s.mag);
-      ctx.globalAlpha = 0.16 + Math.min(0.38, s.mag * 0.42);
-      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(nx, ny); ctx.stroke();
-      p.x = nx; p.y = ny; p.age++;
-      if (p.age > p.life || p.x > width + 30 || p.y < -30 || p.y > height + 30) particles[i] = spawn();
+      ctx.globalAlpha = 0.14 + Math.min(0.42, s.mag * 0.45);
+      ctx.beginPath();
+      ctx.moveTo(prev[0], prev[1]);
+      ctx.lineTo(next[0], next[1]);
+      ctx.stroke();
     }
     ctx.globalAlpha = 1;
     animId = requestAnimationFrame(frame);
   }
+
+  // --- interaction: drag rotate ---
+  const drag = d3.drag()
+    .on("start", function (event) {
+      canvas.__rot0 = [lambda, phi, gamma];
+      canvas.__xy0 = [event.x, event.y];
+    })
+    .on("drag", function (event) {
+      const dx = event.x - canvas.__xy0[0];
+      const dy = event.y - canvas.__xy0[1];
+      if (projectionMode === "orthographic") {
+        // spin globe: horizontal → λ, vertical → φ
+        lambda = canvas.__rot0[0] + dx * 0.005;
+        phi = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, canvas.__rot0[1] - dy * 0.005));
+      } else {
+        // equirectangular: pan longitude (and mild latitude)
+        lambda = canvas.__rot0[0] + dx * 0.004;
+        phi = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, canvas.__rot0[1] - dy * 0.003));
+      }
+      rebuildProjection();
+    });
+
+  d3.select(canvas).call(drag);
+
+  // HUD
+  const densityEl = document.getElementById("density");
+  const vectorsEl = document.getElementById("vectors");
+  const orthoBtn = document.getElementById("proj-ortho");
+  const equiBtn = document.getElementById("proj-equi");
+
+  densityEl.addEventListener("input", () => {
+    densityLevel = +densityEl.value;
+    rebuildParticles();
+  });
+
+  vectorsEl.addEventListener("click", () => {
+    showVectors = !showVectors;
+    vectorsEl.classList.toggle("on", showVectors);
+    vectorsEl.setAttribute("aria-pressed", showVectors ? "true" : "false");
+  });
+
+  function setProjection(mode) {
+    projectionMode = mode;
+    orthoBtn.classList.toggle("active", mode === "orthographic");
+    equiBtn.classList.toggle("active", mode === "equirectangular");
+    rebuildProjection();
+  }
+  orthoBtn.addEventListener("click", () => setProjection("orthographic"));
+  equiBtn.addEventListener("click", () => setProjection("equirectangular"));
+
   async function boot() {
     resize();
     try {
-      grid = await fetchOpenMeteo();
+      await fetchOpenMeteo();
       usingLive = true;
     } catch (e) {
-      grid = forwardField(0);
+      syntheticField(0);
       usingLive = false;
     }
     rebuildParticles();
     cancelAnimationFrame(animId);
     animId = requestAnimationFrame(frame);
   }
+
   window.addEventListener("resize", resize);
   boot();
 })();
-</script>
+  </script>
 </body>
 </html>
