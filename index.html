@@ -277,6 +277,34 @@
       transform: translateX(0.85rem);
       background: var(--ice);
     }
+
+    #hud-color {
+      left: auto;
+      right: max(0.75rem, env(safe-area-inset-right));
+      bottom: auto;
+      top: max(0.75rem, env(safe-area-inset-top));
+      min-width: min(13.5rem, calc(100vw - 1.5rem));
+      max-height: none;
+    }
+    #hud-color .hud-body {
+      max-height: none;
+      overflow: visible;
+    }
+    .hud .swatch {
+      flex: 0 0 auto;
+      width: 1.15rem;
+      height: 1.15rem;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      background: hsl(185, 72%, 55%);
+      box-shadow: 0 0 10px rgba(94, 234, 212, 0.25);
+    }
+    @media (max-width: 480px) {
+      #hud-color {
+        min-width: min(12rem, calc(100vw - 1.2rem));
+      }
+    }
+
     @media (max-width: 480px) {
       .hud {
         font-size: 0.68rem;
@@ -343,6 +371,22 @@
       <div class="hud-row">
         <label for="reset">Reset</label>
         <button id="reset" class="btn-reset" type="button" title="Restore defaults">Reset</button>
+      </div>
+    </div>
+  </aside>
+
+  <aside class="hud" id="hud-color" aria-label="Field color">
+    <div class="hud-head">
+      <span class="hud-title">Color</span>
+      <button type="button" id="hud-color-toggle" class="hud-toggle" aria-expanded="true" aria-controls="hud-color-body" title="Minimize color">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.2 6.1 8 10.9l4.8-4.8 1.1 1.1L8 13.1 2.1 7.2z"/></svg>
+      </button>
+    </div>
+    <div class="hud-body" id="hud-color-body">
+      <div class="hud-row">
+        <label for="hue">Hue</label>
+        <input id="hue" type="range" min="0" max="360" step="1" value="185" />
+        <span class="swatch" id="hue-swatch" aria-hidden="true"></span>
       </div>
     </div>
   </aside>
@@ -557,8 +601,22 @@
     particles = d3.range(n).map(spawnParticle);
   }
 
+  const DEFAULT_HUE = 185;
+  let fieldHue = DEFAULT_HUE;
+
   function colorFor(mag) {
-    return d3.interpolateRgb("#0e7490", "#5eead4")(0.28 + Math.min(0.72, mag * 0.95));
+    const t = 0.28 + Math.min(0.72, mag * 0.95);
+    const sat = 62 + t * 22;
+    const light = 24 + t * 36;
+    return "hsl(" + fieldHue + ", " + sat + "%, " + light + "%)";
+  }
+
+  function updateHueSwatch() {
+    const sw = document.getElementById("hue-swatch");
+    if (sw) {
+      sw.style.background = "hsl(" + fieldHue + ", 72%, 55%)";
+      sw.style.boxShadow = "0 0 10px hsla(" + fieldHue + ", 80%, 55%, 0.35)";
+    }
   }
 
   function drawGlobeOutline() {
@@ -612,7 +670,7 @@
           const sc = projection.scale();
           if (Math.hypot(p0[0] - cx, p0[1] - cy) > sc * 0.98) continue;
         }
-        ctx.strokeStyle = "rgba(103, 232, 249, " + (0.18 + Math.min(0.35, s.mag * 0.4)) + ")";
+        ctx.strokeStyle = "hsla(" + fieldHue + ", 80%, 75%, " + (0.18 + Math.min(0.35, s.mag * 0.4)) + ")";
         ctx.beginPath();
         ctx.moveTo(p0[0], p0[1]);
         ctx.lineTo(p1[0], p1[1]);
@@ -735,6 +793,7 @@
   const resetEl = document.getElementById("reset");
   const orthoBtn = document.getElementById("proj-ortho");
   const equiBtn = document.getElementById("proj-equi");
+  const hueEl = document.getElementById("hue");
 
   densityEl.addEventListener("input", () => {
     densityLevel = +densityEl.value;
@@ -772,6 +831,11 @@
     gamma = DEFAULT_GAMMA;
     zoomLevel = 3;
     zoomEl.value = "3";
+    fieldHue = DEFAULT_HUE;
+    if (hueEl) {
+      hueEl.value = String(DEFAULT_HUE);
+      updateHueSwatch();
+    }
     // clear trail buffer with full bg fill
     ctx.fillStyle = "#05070d";
     ctx.fillRect(0, 0, width, height);
@@ -799,7 +863,28 @@
     if (localStorage.getItem("aofab-hud-collapsed") === "1") setHudCollapsed(true);
   } catch (e) {}
 
-    orthoBtn.addEventListener("click", () => setProjection("orthographic"));
+  const hudColorEl = document.getElementById("hud-color");
+  const hudColorToggle = document.getElementById("hud-color-toggle");
+  function setHudColorCollapsed(collapsed) {
+    hudColorEl.classList.toggle("collapsed", collapsed);
+    hudColorToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    hudColorToggle.title = collapsed ? "Expand color" : "Minimize color";
+    try { localStorage.setItem("aofab-hud-color-collapsed", collapsed ? "1" : "0"); } catch (e) {}
+  }
+  hudColorToggle.addEventListener("click", () => {
+    setHudColorCollapsed(!hudColorEl.classList.contains("collapsed"));
+  });
+  try {
+    if (localStorage.getItem("aofab-hud-color-collapsed") === "1") setHudColorCollapsed(true);
+  } catch (e) {}
+
+  hueEl.addEventListener("input", () => {
+    fieldHue = +hueEl.value;
+    updateHueSwatch();
+  });
+  updateHueSwatch();
+
+  orthoBtn.addEventListener("click", () => setProjection("orthographic"));
   equiBtn.addEventListener("click", () => setProjection("equirectangular"));
 
   async function boot() {
