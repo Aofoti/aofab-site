@@ -278,17 +278,25 @@
       background: var(--ice);
     }
 
-    #hud-color {
-      left: auto;
-      right: max(0.75rem, env(safe-area-inset-right));
-      bottom: auto;
-      top: max(0.75rem, env(safe-area-inset-top));
-      min-width: min(13.5rem, calc(100vw - 1.5rem));
-      max-height: none;
+    .hud-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
     }
-    #hud-color .hud-body {
-      max-height: none;
-      overflow: visible;
+    .hud-section + .hud-section {
+      margin-top: 0.15rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid rgba(94, 234, 212, 0.14);
+    }
+    .hud-section-label {
+      opacity: 0.55;
+      text-transform: uppercase;
+      font-weight: 500;
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      line-height: 1;
+      padding: 0 0 0.05rem;
+      user-select: none;
     }
     .hud .swatch {
       flex: 0 0 auto;
@@ -299,12 +307,6 @@
       background: hsl(185, 72%, 55%);
       box-shadow: 0 0 10px rgba(94, 234, 212, 0.25);
     }
-    @media (max-width: 480px) {
-      #hud-color {
-        min-width: min(12rem, calc(100vw - 1.2rem));
-      }
-    }
-
 
     .site-copy {
       position: fixed;
@@ -371,56 +373,53 @@
       </button>
     </div>
     <div class="hud-body" id="hud-body">
-      <div class="hud-row">
-        <label for="density">Density</label>
-        <input id="density" type="range" min="1" max="5" step="1" value="3" />
-      </div>
-      <div class="hud-row">
-        <label for="speed">Speed</label>
-        <input id="speed" type="range" min="1" max="5" step="1" value="3" />
-      </div>
-      <div class="hud-row">
-        <label for="trails">Trails</label>
-        <input id="trails" type="range" min="1" max="5" step="1" value="3" />
-      </div>
-      <div class="hud-row">
-        <label for="zoom">Zoom</label>
-        <input id="zoom" type="range" min="1" max="5" step="1" value="3" />
-      </div>
-      <div class="hud-row">
-        <label for="vectors">Vectors</label>
-        <button id="vectors" class="toggle" type="button" aria-pressed="false" title="Velocity vectors"></button>
-      </div>
-      <div class="hud-row">
-        <label for="grid">Grid</label>
-        <button id="grid" class="toggle on" type="button" aria-pressed="true" title="Graticule"></button>
-      </div>
-      <div class="hud-row">
-        <label>Project</label>
-        <div class="seg" role="group" aria-label="Projection">
-          <button type="button" id="proj-ortho" class="active" data-proj="orthographic">Ortho</button>
-          <button type="button" id="proj-equi" data-proj="equirectangular">Equirect</button>
+      <div class="hud-section" aria-label="Field">
+        <div class="hud-section-label">Field</div>
+        <div class="hud-row">
+          <label for="density">Density</label>
+          <input id="density" type="range" min="1" max="5" step="1" value="3" />
+        </div>
+        <div class="hud-row">
+          <label for="speed">Speed</label>
+          <input id="speed" type="range" min="1" max="5" step="1" value="3" />
+        </div>
+        <div class="hud-row">
+          <label for="trails">Trails</label>
+          <input id="trails" type="range" min="1" max="5" step="1" value="3" />
+        </div>
+        <div class="hud-row">
+          <label for="zoom">Zoom</label>
+          <input id="zoom" type="range" min="1" max="5" step="1" value="3" />
+        </div>
+        <div class="hud-row">
+          <label for="vectors">Vectors</label>
+          <button id="vectors" class="toggle" type="button" aria-pressed="false" title="Velocity vectors"></button>
+        </div>
+        <div class="hud-row">
+          <label for="grid">Grid</label>
+          <button id="grid" class="toggle on" type="button" aria-pressed="true" title="Graticule"></button>
+        </div>
+        <div class="hud-row">
+          <label>Project</label>
+          <div class="seg" role="group" aria-label="Projection">
+            <button type="button" id="proj-ortho" class="active" data-proj="orthographic">Ortho</button>
+            <button type="button" id="proj-equi" data-proj="equirectangular">Equirect</button>
+          </div>
         </div>
       </div>
-      <div class="hud-row">
-        <label for="reset">Reset</label>
-        <button id="reset" class="btn-reset" type="button" title="Restore defaults">Reset</button>
+      <div class="hud-section" aria-label="Color">
+        <div class="hud-section-label">Color</div>
+        <div class="hud-row">
+          <label for="hue">Hue</label>
+          <input id="hue" type="range" min="0" max="360" step="1" value="185" />
+          <span class="swatch" id="hue-swatch" aria-hidden="true"></span>
+        </div>
       </div>
-    </div>
-  </aside>
-
-  <aside class="hud" id="hud-color" aria-label="Field color">
-    <div class="hud-head">
-      <span class="hud-title">Color</span>
-      <button type="button" id="hud-color-toggle" class="hud-toggle" aria-expanded="true" aria-controls="hud-color-body" title="Minimize color">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.2 6.1 8 10.9l4.8-4.8 1.1 1.1L8 13.1 2.1 7.2z"/></svg>
-      </button>
-    </div>
-    <div class="hud-body" id="hud-color-body">
-      <div class="hud-row">
-        <label for="hue">Hue</label>
-        <input id="hue" type="range" min="0" max="360" step="1" value="185" />
-        <span class="swatch" id="hue-swatch" aria-hidden="true"></span>
+      <div class="hud-section" aria-label="Reset">
+        <div class="hud-row">
+          <label for="reset">Reset</label>
+          <button id="reset" class="btn-reset" type="button" title="Restore defaults">Reset</button>
+        </div>
       </div>
     </div>
   </aside>
@@ -898,20 +897,8 @@
     if (localStorage.getItem("aofab-hud-collapsed") === "1") setHudCollapsed(true);
   } catch (e) {}
 
-  const hudColorEl = document.getElementById("hud-color");
-  const hudColorToggle = document.getElementById("hud-color-toggle");
-  function setHudColorCollapsed(collapsed) {
-    hudColorEl.classList.toggle("collapsed", collapsed);
-    hudColorToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    hudColorToggle.title = collapsed ? "Expand color" : "Minimize color";
-    try { localStorage.setItem("aofab-hud-color-collapsed", collapsed ? "1" : "0"); } catch (e) {}
-  }
-  hudColorToggle.addEventListener("click", () => {
-    setHudColorCollapsed(!hudColorEl.classList.contains("collapsed"));
-  });
-  try {
-    if (localStorage.getItem("aofab-hud-color-collapsed") === "1") setHudColorCollapsed(true);
-  } catch (e) {}
+  // Color merged into Controls; drop orphan aofab-hud-color-collapsed key
+  try { localStorage.removeItem("aofab-hud-color-collapsed"); } catch (e) {}
 
   hueEl.addEventListener("input", () => {
     fieldHue = +hueEl.value;
