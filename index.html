@@ -349,6 +349,134 @@
       }
       .hud label { flex-basis: 3.6rem; }
     }
+
+    /* Contact */
+    .contact-btn {
+      position: fixed;
+      top: max(0.75rem, env(safe-area-inset-top));
+      right: max(0.75rem, env(safe-area-inset-right));
+      z-index: 7;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.38rem 0.65rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: var(--cyan);
+      font: inherit;
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .contact-btn:hover, .contact-btn:focus-visible {
+      background: rgba(94, 234, 212, 0.12);
+      border-color: rgba(94, 234, 212, 0.45);
+      color: var(--ice);
+      outline: none;
+    }
+    .contact-btn svg { width: 0.85rem; height: 0.85rem; display: block; }
+    .contact-overlay {
+      position: fixed; inset: 0; z-index: 20;
+      display: grid; place-items: center;
+      padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+      background: rgba(2, 4, 8, 0.55);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      touch-action: auto;
+    }
+    .contact-overlay[hidden] { display: none; }
+    .contact-panel {
+      position: relative;
+      width: min(24rem, 100%);
+      max-height: calc(100vh - 2rem);
+      overflow-y: auto;
+      padding: 1rem 1.1rem 1.1rem;
+      background: rgba(5, 7, 13, 0.82);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 0 0 1px rgba(94, 234, 212, 0.05), 0 18px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(34, 211, 238, 0.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: var(--text);
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+    }
+    .contact-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.85rem;
+    }
+    .contact-title {
+      color: var(--cyan);
+      font-size: 0.7rem; font-weight: 500;
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .contact-close {
+      width: 1.7rem; height: 1.7rem;
+      display: grid; place-items: center; padding: 0;
+      border: 1px solid var(--line); border-radius: 6px;
+      background: rgba(94, 234, 212, 0.08); color: var(--ice);
+      cursor: pointer; font: inherit; line-height: 1;
+    }
+    .contact-close:hover, .contact-close:focus-visible { background: rgba(94, 234, 212, 0.18); outline: none; }
+    .contact-close svg { width: 0.75rem; height: 0.75rem; display: block; }
+    .contact-form { display: flex; flex-direction: column; gap: 0.7rem; }
+    .contact-field { display: flex; flex-direction: column; gap: 0.3rem; }
+    .contact-field label {
+      color: var(--muted);
+      font-size: 0.62rem; font-weight: 500;
+      letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    .contact-field label .req { color: var(--ice); opacity: 0.8; }
+    .contact-field input, .contact-field textarea {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(14, 116, 144, 0.08);
+      color: var(--text);
+      font: inherit; font-size: 0.82rem; letter-spacing: 0.01em;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      user-select: text; -webkit-user-select: text;
+    }
+    .contact-field textarea { min-height: 6.5rem; resize: vertical; line-height: 1.45; }
+    .contact-field input::placeholder, .contact-field textarea::placeholder { color: rgba(148, 163, 184, 0.4); }
+    .contact-field input:focus, .contact-field textarea:focus {
+      border-color: rgba(103, 232, 249, 0.6);
+      background: rgba(14, 116, 144, 0.14);
+      box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12);
+    }
+    .contact-hp { position: absolute !important; left: -10000px !important; width: 1px; height: 1px; overflow: hidden; }
+    .contact-actions { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.15rem; }
+    .contact-status { font-size: 0.72rem; line-height: 1.35; color: var(--muted); min-height: 1em; flex: 1; }
+    .contact-status.ok { color: var(--ice); }
+    .contact-status.err { color: #fda4af; }
+    .contact-submit {
+      flex: 0 0 auto;
+      padding: 0.45rem 0.95rem;
+      border: 1px solid rgba(94, 234, 212, 0.4);
+      border-radius: 7px;
+      background: rgba(94, 234, 212, 0.12);
+      color: var(--ice);
+      font: inherit; font-size: 0.68rem; font-weight: 500;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      cursor: pointer;
+    }
+    .contact-submit:hover, .contact-submit:focus-visible { background: rgba(94, 234, 212, 0.22); outline: none; }
+    .contact-submit[disabled] { opacity: 0.5; cursor: progress; }
+    .contact-done { display: none; padding: 1.2rem 0 0.4rem; text-align: center; color: var(--ice); font-size: 0.85rem; letter-spacing: 0.04em; }
+    .contact-panel.sent .contact-form { display: none; }
+    .contact-panel.sent .contact-done { display: block; }
+    @media (max-width: 480px) {
+      .contact-btn { padding: 0.34rem 0.55rem; font-size: 0.62rem; }
+      .contact-field input, .contact-field textarea { font-size: 16px; }
+    }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -423,6 +551,43 @@
       </div>
     </div>
   </aside>
+  <button type="button" class="contact-btn" id="contact-open" aria-haspopup="dialog" aria-controls="contact-overlay">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.3" d="M2 3.5h12v9H2z M2.4 4 8 8.6 13.6 4"/></svg>
+    <span>Contact</span>
+  </button>
+  <div class="contact-overlay" id="contact-overlay" hidden>
+    <div class="contact-panel" id="contact-panel" role="dialog" aria-modal="true" aria-labelledby="contact-title">
+      <div class="contact-head">
+        <span class="contact-title" id="contact-title">Contact</span>
+        <button type="button" class="contact-close" id="contact-close" aria-label="Close contact form">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>
+        </button>
+      </div>
+      <form class="contact-form" id="contact-form" novalidate>
+        <div class="contact-field">
+          <label for="cf-name">Name</label>
+          <input id="cf-name" name="name" type="text" autocomplete="name" maxlength="120" />
+        </div>
+        <div class="contact-field">
+          <label for="cf-email">Email <span class="req" aria-hidden="true">*</span></label>
+          <input id="cf-email" name="email" type="email" autocomplete="email" required maxlength="200" />
+        </div>
+        <div class="contact-field">
+          <label for="cf-message">Message <span class="req" aria-hidden="true">*</span></label>
+          <textarea id="cf-message" name="message" required maxlength="5000"></textarea>
+        </div>
+        <div class="contact-hp" aria-hidden="true">
+          <label for="cf-honey">Leave this field empty</label>
+          <input id="cf-honey" name="_honey" type="text" tabindex="-1" autocomplete="off" />
+        </div>
+        <div class="contact-actions">
+          <span class="contact-status" id="contact-status" role="status" aria-live="polite"></span>
+          <button type="submit" class="contact-submit" id="contact-submit">Send</button>
+        </div>
+      </form>
+      <div class="contact-done" id="contact-done" role="status" aria-live="polite">Sent. We’ll be in touch.</div>
+    </div>
+  </div>
   <footer class="site-copy" aria-label="Copyright">© 2026 Andrew’s Office, LLC. All rights reserved.</footer>
   <script>
 (function () {
@@ -925,6 +1090,102 @@
 
   window.addEventListener("resize", resize);
   boot();
+})();
+  </script>
+  <script>
+(function () {
+  "use strict";
+  var FORM_ENDPOINT = "https://formsubmit.co/ajax/aofab+contact@mail.grokbot.com";
+  var openBtn = document.getElementById("contact-open");
+  var overlay = document.getElementById("contact-overlay");
+  var panel = document.getElementById("contact-panel");
+  var closeBtn = document.getElementById("contact-close");
+  var form = document.getElementById("contact-form");
+  var statusEl = document.getElementById("contact-status");
+  var submitBtn = document.getElementById("contact-submit");
+  var nameEl = document.getElementById("cf-name");
+  var emailEl = document.getElementById("cf-email");
+  var msgEl = document.getElementById("cf-message");
+  var honeyEl = document.getElementById("cf-honey");
+  var lastFocus = null;
+
+  function setStatus(text, kind) {
+    statusEl.textContent = text || "";
+    statusEl.className = "contact-status" + (kind ? " " + kind : "");
+  }
+  function openModal() {
+    lastFocus = document.activeElement;
+    if (panel.classList.contains("sent")) {
+      panel.classList.remove("sent");
+      form.reset();
+    }
+    setStatus("");
+    overlay.hidden = false;
+    openBtn.setAttribute("aria-expanded", "true");
+    setTimeout(function () { (nameEl.value ? emailEl : nameEl).focus(); }, 30);
+  }
+  function closeModal() {
+    overlay.hidden = true;
+    openBtn.setAttribute("aria-expanded", "false");
+    if (lastFocus && lastFocus.focus) lastFocus.focus(); else openBtn.focus();
+  }
+  openBtn.setAttribute("aria-expanded", "false");
+  openBtn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  overlay.addEventListener("click", function (e) { if (e.target === overlay) closeModal(); });
+  document.addEventListener("keydown", function (e) {
+    if (overlay.hidden) return;
+    if (e.key === "Escape") { e.preventDefault(); closeModal(); return; }
+    if (e.key === "Tab") {
+      var f = panel.querySelectorAll("button:not([disabled]), input:not([tabindex='-1']), textarea");
+      var vis = Array.prototype.filter.call(f, function (el) { return el.offsetParent !== null; });
+      if (!vis.length) return;
+      var first = vis[0], last = vis[vis.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+  ["pointerdown", "wheel", "touchstart"].forEach(function (t) {
+    overlay.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true });
+  });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = nameEl.value.trim();
+    var email = emailEl.value.trim();
+    var message = msgEl.value.trim();
+    if (!email || !emailEl.checkValidity()) { setStatus("Enter a valid email.", "err"); emailEl.focus(); return; }
+    if (!message) { setStatus("Add a message.", "err"); msgEl.focus(); return; }
+    if (honeyEl.value) { panel.classList.add("sent"); return; }
+    submitBtn.disabled = true;
+    setStatus("Sending…");
+    fetch(FORM_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({
+        name: name || "(not given)",
+        email: email,
+        message: message,
+        _replyto: email,
+        _subject: "aofab.com contact: " + (name || email),
+        _template: "table",
+        _captcha: "false",
+        _honey: ""
+      })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; });
+    }).then(function (res) {
+      var ok = res.ok && res.d && (res.d.success === true || res.d.success === "true");
+      if (!ok) throw new Error((res.d && res.d.message) || "Send failed");
+      panel.classList.add("sent");
+      setStatus("");
+      closeBtn.focus();
+    }).catch(function () {
+      setStatus("Couldn’t send. Please try again in a moment.", "err");
+    }).then(function () {
+      submitBtn.disabled = false;
+    });
+  });
 })();
   </script>
 </body>
