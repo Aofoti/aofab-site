@@ -95,6 +95,58 @@
         drop-shadow(0 0 18px rgba(34, 211, 238, 0.18))
         drop-shadow(0 0 42px rgba(94, 234, 212, 0.1));
     }
+    /* Glittering gold ao mark */
+    .ao-gold {
+      position: relative;
+      display: block;
+      line-height: 0;
+      filter:
+        drop-shadow(0 0 10px rgba(245, 200, 96, 0.22))
+        drop-shadow(0 0 32px rgba(201, 150, 46, 0.12));
+    }
+    .mark .ao-gold img.ao-base { filter: none; }
+    .ao-fill,
+    .ao-glitter {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: none;
+      pointer-events: none;
+    }
+    @supports ((mask-image: url("x.png")) or (-webkit-mask-image: url("x.png"))) {
+      .ao-fill,
+      .ao-glitter {
+        display: block;
+        -webkit-mask-image: url("ao-mark.png");
+        mask-image: url("ao-mark.png");
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+      }
+      .ao-fill {
+        background:
+          linear-gradient(105deg,
+            rgba(255, 246, 214, 0) 38%,
+            rgba(255, 246, 214, 0.55) 47%,
+            rgba(255, 255, 245, 0.85) 50%,
+            rgba(255, 246, 214, 0.55) 53%,
+            rgba(255, 246, 214, 0) 62%) 120% 0 / 260% 100% no-repeat,
+          linear-gradient(170deg,
+            #7a5a14 0%, #b8862b 18%, #f5d77a 38%, #fff3c4 47%,
+            #e2b85a 56%, #c9962e 72%, #8a6418 100%);
+        animation: ao-sheen 6s ease-in-out infinite;
+      }
+    }
+    @keyframes ao-sheen {
+      0% { background-position: 120% 0, 0 0; }
+      55%, 100% { background-position: -20% 0, 0 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ao-fill { animation: none; background-position: 120% 0, 0 0; }
+      .ao-glitter { display: none !important; }
+    }
     .visually-hidden {
       position: absolute;
       width: 1px; height: 1px;
@@ -490,7 +542,11 @@
   <main class="hero">
     <div class="mark">
       <h1 class="visually-hidden">AoFab</h1>
-      <img src="ao-mark.png" width="1024" height="1024" alt="AoFab" />
+      <div class="ao-gold">
+        <img class="ao-base" src="ao-mark-gold.png" width="1024" height="1024" alt="AoFab" />
+        <span class="ao-fill" aria-hidden="true"></span>
+        <canvas class="ao-glitter" aria-hidden="true"></canvas>
+      </div>
     </div>
   </main>
   <aside class="hud" id="hud" aria-label="Field controls">
@@ -1186,6 +1242,98 @@
       submitBtn.disabled = false;
     });
   });
+})();
+  </script>
+  <script>
+(function () {
+  "use strict";
+  var cv = document.querySelector(".ao-glitter");
+  if (!cv || !cv.getContext) return;
+  var rm = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  var CS = window.CSS && CSS.supports;
+  if (!CS || !(CSS.supports("mask-image", "url(x.png)") || CSS.supports("-webkit-mask-image", "url(x.png)"))) return;
+  var ctx = cv.getContext("2d");
+  var pts = [], sparks = [], raf = 0, last = 0, W = 0, H = 0, dpr = 1, running = false;
+  var N = 26;
+  function sample() {
+    var src = new Image();
+    src.onload = function () {
+      var S = 128, c = document.createElement("canvas");
+      c.width = S; c.height = S;
+      var g = c.getContext("2d");
+      g.drawImage(src, 0, 0, S, S);
+      var d;
+      try { d = g.getImageData(0, 0, S, S).data; } catch (e) { return; }
+      for (var y = 0; y < S; y++) for (var x = 0; x < S; x++) {
+        if (d[(y * S + x) * 4 + 3] > 200) pts.push([(x + 0.5) / S, (y + 0.5) / S]);
+      }
+      if (pts.length) { size(); start(); }
+    };
+    src.src = "ao-mark.png";
+  }
+  function size() {
+    var r = cv.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 3);
+    W = Math.max(1, Math.round(r.width * dpr)); H = Math.max(1, Math.round(r.height * dpr));
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  }
+  function spawn(s, now, initial) {
+    var p = pts[(Math.random() * pts.length) | 0];
+    s.x = p[0]; s.y = p[1];
+    s.star = Math.random() < 0.14;
+    s.dur = s.star ? 900 + Math.random() * 700 : 700 + Math.random() * 1500;
+    s.t0 = now + (initial ? -Math.random() * s.dur : Math.random() * 900);
+    s.r = s.star ? 2.6 + Math.random() * 2.4 : 0.5 + Math.random() * 0.9;
+    s.peak = s.star ? 0.85 + Math.random() * 0.15 : 0.35 + Math.random() * 0.5;
+    return s;
+  }
+  function draw(now) {
+    raf = 0;
+    if (!running) return;
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "lighter";
+    for (var i = 0; i < sparks.length; i++) {
+      var s = sparks[i], k = (now - s.t0) / s.dur;
+      if (k >= 1) { spawn(s, now, false); continue; }
+      if (k < 0) continue;
+      var a = Math.sin(Math.PI * k); a = a * a * s.peak;
+      var x = s.x * W, y = s.y * H, r = s.r * dpr;
+      var g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.2);
+      g.addColorStop(0, "rgba(255,252,235," + a + ")");
+      g.addColorStop(0.4, "rgba(255,226,140," + a * 0.55 + ")");
+      g.addColorStop(1, "rgba(255,200,90,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, r * 2.2, 0, 6.2832); ctx.fill();
+      if (s.star) {
+        var L = r * 3.2 * (0.6 + 0.4 * Math.sin(Math.PI * k)), w = Math.max(0.6, 0.35 * dpr);
+        ctx.fillStyle = "rgba(255,250,228," + a * 0.9 + ")";
+        ctx.beginPath();
+        ctx.moveTo(x - L, y); ctx.lineTo(x, y - w); ctx.lineTo(x + L, y); ctx.lineTo(x, y + w); ctx.closePath();
+        ctx.moveTo(x, y - L); ctx.lineTo(x + w, y); ctx.lineTo(x, y + L); ctx.lineTo(x - w, y); ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.globalCompositeOperation = "source-over";
+    raf = requestAnimationFrame(draw);
+  }
+  function start() {
+    if (running || document.hidden || (rm && rm.matches) || !pts.length) return;
+    running = true;
+    if (!sparks.length) { var now = performance.now(); for (var i = 0; i < N; i++) sparks.push(spawn({}, now, true)); }
+    raf = requestAnimationFrame(draw);
+  }
+  function stop() {
+    running = false;
+    if (raf) cancelAnimationFrame(raf); raf = 0;
+    ctx.clearRect(0, 0, W, H);
+  }
+  document.addEventListener("visibilitychange", function () { document.hidden ? stop() : start(); });
+  window.addEventListener("resize", function () { if (pts.length) size(); });
+  if (rm) {
+    var onRm = function () { rm.matches ? stop() : start(); };
+    if (rm.addEventListener) rm.addEventListener("change", onRm); else if (rm.addListener) rm.addListener(onRm);
+  }
+  sample();
 })();
   </script>
 </body>
