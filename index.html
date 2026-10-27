@@ -525,8 +525,87 @@
     .contact-done { display: none; padding: 1.2rem 0 0.4rem; text-align: center; color: var(--ice); font-size: 0.85rem; letter-spacing: 0.04em; }
     .contact-panel.sent .contact-form { display: none; }
     .contact-panel.sent .contact-done { display: block; }
+    /* Quick links */
+    .links-btn {
+      left: max(0.75rem, env(safe-area-inset-left));
+      right: auto;
+    }
+    .links-btn {
+      padding: 0.38rem;
+      opacity: 0.38;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.2s ease;
+    }
+    .links-btn:hover, .links-btn:focus-visible, .links-btn[aria-expanded="true"] { opacity: 1; }
+    .links-btn[aria-expanded="true"] {
+      background: rgba(94, 234, 212, 0.12);
+      border-color: rgba(94, 234, 212, 0.45);
+      color: var(--ice);
+    }
+    .links-menu {
+      position: fixed;
+      top: calc(max(0.75rem, env(safe-area-inset-top)) + 2.15rem);
+      left: max(0.75rem, env(safe-area-inset-left));
+      z-index: 8;
+      min-width: 13.5rem;
+      max-width: calc(100vw - 1.5rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+      padding: 0.35rem;
+      background: rgba(5, 7, 13, 0.82);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 0 0 0 1px rgba(94, 234, 212, 0.05), 0 14px 40px rgba(0, 0, 0, 0.55), 0 0 32px rgba(34, 211, 238, 0.07);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: var(--text);
+      font-size: 0.75rem;
+      touch-action: auto;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-6px) scale(0.98);
+      transform-origin: top left;
+      transition: opacity 0.16s ease, transform 0.18s ease, visibility 0s linear 0.18s;
+    }
+    .links-menu.open {
+      opacity: 1;
+      visibility: visible;
+      transform: none;
+      transition: opacity 0.16s ease, transform 0.18s ease, visibility 0s;
+    }
+    .links-head {
+      padding: 0.35rem 0.55rem 0.4rem;
+      color: var(--muted);
+      font-size: 0.58rem; font-weight: 500;
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .links-item {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 0.55rem;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      color: var(--text);
+      text-decoration: none;
+      outline: none;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .links-item:hover, .links-item:focus-visible, .links-item:focus {
+      background: rgba(94, 234, 212, 0.1);
+      border-color: rgba(94, 234, 212, 0.3);
+    }
+    .links-text { display: flex; flex-direction: column; gap: 0.12rem; min-width: 0; flex: 1; }
+    .links-label { color: var(--ice); font-weight: 500; letter-spacing: 0.03em; }
+    .links-note {
+      color: var(--muted); font-size: 0.64rem; letter-spacing: 0.02em;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .links-ext { width: 0.75rem; height: 0.75rem; flex: 0 0 auto; color: var(--cyan); opacity: 0.6; }
+    .links-item:hover .links-ext, .links-item:focus .links-ext { opacity: 1; }
+    @media (prefers-reduced-motion: reduce) {
+      .links-menu, .links-menu.open, .links-btn { transition: none; }
+      .links-menu { transform: none; }
+    }
     @media (max-width: 480px) {
       .contact-btn { padding: 0.34rem 0.55rem; font-size: 0.62rem; }
+      .links-btn { padding: 0.34rem; }
+      .links-menu { top: calc(max(0.75rem, env(safe-area-inset-top)) + 2rem); }
       .contact-field input, .contact-field textarea { font-size: 16px; }
     }
   </style>
@@ -611,6 +690,12 @@
     <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.3" d="M2 3.5h12v9H2z M2.4 4 8 8.6 13.6 4"/></svg>
     <span>Contact</span>
   </button>
+  <nav class="links-nav" aria-label="Quick links">
+    <button type="button" class="contact-btn links-btn" id="links-open" aria-label="Quick links" title="Quick links" aria-haspopup="menu" aria-expanded="false" aria-controls="links-menu">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.3" d="M2.5 2.5h4v4h-4zM9.5 2.5h4v4h-4zM2.5 9.5h4v4h-4zM9.5 9.5h4v4h-4z"/></svg>
+    </button>
+    <div class="links-menu" id="links-menu" role="menu" aria-labelledby="links-open"></div>
+  </nav>
   <div class="contact-overlay" id="contact-overlay" hidden>
     <div class="contact-panel" id="contact-panel" role="dialog" aria-modal="true" aria-labelledby="contact-title">
       <div class="contact-head">
@@ -1151,6 +1236,10 @@
   <script>
 (function () {
   "use strict";
+  const QUICK_LINKS = [
+    { label: "Autodesk Forma", url: "https://app.autodeskforma.com/", note: "app.autodeskforma.com" },
+    { label: "Autodesk Construction Cloud", url: "https://acc.autodesk.com/", note: "acc.autodesk.com" }
+  ];
   var FORM_ENDPOINT = "https://formsubmit.co/ajax/1daf8b4667061bcd8f92d6e747f5e39f";
   var openBtn = document.getElementById("contact-open");
   var overlay = document.getElementById("contact-overlay");
@@ -1242,6 +1331,74 @@
       submitBtn.disabled = false;
     });
   });
+
+  /* Quick links menu */
+  (function () {
+    var lBtn = document.getElementById("links-open");
+    var lMenu = document.getElementById("links-menu");
+    if (!lBtn || !lMenu) return;
+    var head = document.createElement("div");
+    head.className = "links-head";
+    head.setAttribute("aria-hidden", "true");
+    head.textContent = "Quick links";
+    lMenu.appendChild(head);
+    var EXT = '<svg class="links-ext" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M9 3h4v4M13 3 7.5 8.5M11.5 9.5V13H3V4.5h3.5"/></svg>';
+    QUICK_LINKS.forEach(function (l) {
+      var a = document.createElement("a");
+      a.className = "links-item";
+      a.href = l.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.setAttribute("role", "menuitem");
+      a.tabIndex = -1;
+      var t = document.createElement("span"); t.className = "links-text";
+      var lb = document.createElement("span"); lb.className = "links-label"; lb.textContent = l.label;
+      t.appendChild(lb);
+      if (l.note) { var n = document.createElement("span"); n.className = "links-note"; n.textContent = l.note; t.appendChild(n); }
+      a.appendChild(t);
+      a.insertAdjacentHTML("beforeend", EXT);
+      a.addEventListener("click", function () { closeLinks(false); });
+      lMenu.appendChild(a);
+    });
+    function items() { return Array.prototype.slice.call(lMenu.querySelectorAll('[role="menuitem"]')); }
+    function isOpen() { return lMenu.classList.contains("open"); }
+    function openLinks(focusLast) {
+      lMenu.classList.add("open");
+      lBtn.setAttribute("aria-expanded", "true");
+      var it = items();
+      if (it.length) setTimeout(function () { it[focusLast ? it.length - 1 : 0].focus(); }, 20);
+    }
+    function closeLinks(returnFocus) {
+      if (!isOpen()) return;
+      lMenu.classList.remove("open");
+      lBtn.setAttribute("aria-expanded", "false");
+      if (returnFocus) lBtn.focus();
+    }
+    lBtn.addEventListener("click", function () { isOpen() ? closeLinks(false) : openLinks(false); });
+    lBtn.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown") { e.preventDefault(); openLinks(false); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); openLinks(true); }
+    });
+    lMenu.addEventListener("keydown", function (e) {
+      var it = items(), i = it.indexOf(document.activeElement);
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeLinks(true); }
+      else if (e.key === "ArrowDown") { e.preventDefault(); it[(i + 1) % it.length].focus(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); it[(i - 1 + it.length) % it.length].focus(); }
+      else if (e.key === "Home") { e.preventDefault(); it[0].focus(); }
+      else if (e.key === "End") { e.preventDefault(); it[it.length - 1].focus(); }
+      else if (e.key === "Tab") { closeLinks(false); }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && isOpen()) { closeLinks(true); }
+    });
+    document.addEventListener("pointerdown", function (e) {
+      if (isOpen() && !lMenu.contains(e.target) && !lBtn.contains(e.target)) closeLinks(false);
+    }, true);
+    ["pointerdown", "wheel", "touchstart"].forEach(function (t) {
+      lMenu.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true });
+    });
+    openBtn.addEventListener("click", function () { closeLinks(false); });
+  })();
 })();
   </script>
   <script>
