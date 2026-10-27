@@ -628,10 +628,10 @@
       </div>
     </div>
   </main>
-  <aside class="hud" id="hud" aria-label="Field controls">
+  <aside class="hud collapsed" id="hud" aria-label="Field controls">
     <div class="hud-head">
       <span class="hud-title">Controls</span>
-      <button type="button" id="hud-toggle" class="hud-toggle" aria-expanded="true" aria-controls="hud-body" title="Minimize controls">
+      <button type="button" id="hud-toggle" class="hud-toggle" aria-expanded="false" aria-controls="hud-body" title="Expand controls">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.2 6.1 8 10.9l4.8-4.8 1.1 1.1L8 13.1 2.1 7.2z"/></svg>
       </button>
     </div>
@@ -686,6 +686,18 @@
       </div>
     </div>
   </aside>
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem("aofab-hud-collapsed-v2") === "0") {
+          var h = document.getElementById("hud"), t = document.getElementById("hud-toggle");
+          h.classList.remove("collapsed");
+          t.setAttribute("aria-expanded", "true");
+          t.title = "Minimize controls";
+        }
+      } catch (e) {}
+    })();
+  </script>
   <button type="button" class="contact-btn" id="contact-open" aria-haspopup="dialog" aria-controls="contact-overlay">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.3" d="M2 3.5h12v9H2z M2.4 4 8 8.6 13.6 4"/></svg>
     <span>Contact</span>
@@ -1194,14 +1206,20 @@
     hudEl.classList.toggle("collapsed", collapsed);
     hudToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
     hudToggle.title = collapsed ? "Expand controls" : "Minimize controls";
-    try { localStorage.setItem("aofab-hud-collapsed", collapsed ? "1" : "0"); } catch (e) {}
+    try { localStorage.setItem("aofab-hud-collapsed-v2", collapsed ? "1" : "0"); } catch (e) {}
   }
   hudToggle.addEventListener("click", () => {
     setHudCollapsed(!hudEl.classList.contains("collapsed"));
   });
-  try {
-    if (localStorage.getItem("aofab-hud-collapsed") === "1") setHudCollapsed(true);
-  } catch (e) {}
+  // Collapsed by default; only an explicit saved "0" (v2 key) keeps it open. Old key ignored.
+  (function () {
+    let v = null;
+    try { v = localStorage.getItem("aofab-hud-collapsed-v2"); } catch (e) {}
+    const collapsed = v !== "0";
+    hudEl.classList.toggle("collapsed", collapsed);
+    hudToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    hudToggle.title = collapsed ? "Expand controls" : "Minimize controls";
+  })();
 
   // Color merged into Controls; drop orphan aofab-hud-color-collapsed key
   try { localStorage.removeItem("aofab-hud-color-collapsed"); } catch (e) {}
